@@ -1,6 +1,6 @@
 {
   "name": "@yan5xu/perceive",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multimodal media perception — analyze images, audio, and video with AI",
   "runtime": "bun",
   "main": "index.ts",

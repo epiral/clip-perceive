@@ -5,7 +5,7 @@ import { extname, join } from "node:path";
 import { homedir } from "node:os";
 
 const DEFAULT_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 const PINIX_SCHEME = "pinix://";
 
 function dataDir(): string {
