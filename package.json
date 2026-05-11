@@ -1,6 +1,6 @@
 {
   "name": "clip-perceive",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "bin": {
     "clip-perceive": "index.ts"
   },
