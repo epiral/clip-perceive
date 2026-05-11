@@ -69,10 +69,44 @@ function getApiKey(): string {
   throw new Error("API key not configured. Run: perceive configure --api_key <key>");
 }
 
+function guessMimeByExt(filePath: string): string | null {
+  const ext = extname(filePath).toLowerCase();
+  return MIME_MAP[ext] ?? null;
+}
+
+function guessMimeByMagic(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return "image/jpeg";
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return "image/png";
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return "image/gif";
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return "image/webp";
+  if (buf[0] === 0x42 && buf[1] === 0x4D) return "image/bmp";
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return "application/pdf";
+  const head = buf.subarray(0, 12);
+  if (head.includes(0x66) && head.includes(0x74) && head.includes(0x79) && head.includes(0x70)) return "video/mp4";
+  if (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) return "audio/mpeg";
+  if (buf[0] === 0x66 && buf[1] === 0x4C && buf[2] === 0x61 && buf[3] === 0x43) return "audio/flac";
+  if (buf[0] === 0x4F && buf[1] === 0x67 && buf[2] === 0x67 && buf[3] === 0x53) return "audio/ogg";
+  return null;
+}
+
+async function guessMimeByHttp(url: string): Promise<string | null> {
+  try {
+    const resp = await fetch(url, { method: "HEAD" });
+    const ct = resp.headers.get("content-type");
+    if (ct) {
+      const mime = ct.split(";")[0].trim().toLowerCase();
+      if (mime && mime !== "application/octet-stream" && mime !== "binary/octet-stream") return mime;
+    }
+  } catch {}
+  return null;
+}
+
 function guessMime(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
   const mime = MIME_MAP[ext];
-  if (!mime) throw new Error(`Unsupported file type: ${ext}`);
+  if (!mime) throw new Error(`Unsupported file type: ${ext || filePath}`);
   return mime;
 }
 
@@ -89,7 +123,10 @@ function defaultPrompt(mime: string): string {
 
 async function fetchFile(file: string): Promise<{ mime: string; base64: string }> {
   const buf = await data.resolve(file);
-  const mime = guessMime(file);
+  let mime = guessMimeByExt(file);
+  if (!mime) mime = guessMimeByMagic(buf);
+  if (!mime && (file.startsWith("http://") || file.startsWith("https://"))) mime = await guessMimeByHttp(file);
+  if (!mime) throw new Error(`Unsupported file type: ${file}`);
   return { mime, base64: buf.toString("base64") };
 }
 
