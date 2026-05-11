@@ -1,12 +1,11 @@
 #!/usr/bin/env bun
-import { Clip, command, handler, invoke, z } from "@pinixai/core";
+import { Clip, command, handler, data, z } from "@pinixai/core";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { homedir } from "node:os";
 
 const DEFAULT_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
-const PINIX_SCHEME = "pinix://";
 
 function dataDir(): string {
   const dir = process.env["PINIX_DATA_DIR"] ?? join(homedir(), ".pinix", "data", "perceive");
@@ -89,28 +88,9 @@ function defaultPrompt(mime: string): string {
 }
 
 async function fetchFile(file: string): Promise<{ mime: string; base64: string }> {
-  if (file.startsWith(PINIX_SCHEME)) {
-    const filePath = file.slice(PINIX_SCHEME.length);
-    const mime = guessMime(filePath);
-    const result = (await invoke("fs", "cat", { path: filePath })) as {
-      content: string;
-      encoding: "utf-8" | "base64";
-    };
-    const base64 =
-      result.encoding === "base64" ? result.content : Buffer.from(result.content).toString("base64");
-    return { mime, base64 };
-  }
-
-  if (file.startsWith("http://") || file.startsWith("https://")) {
-    const resp = await fetch(file);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-    const buf = await resp.arrayBuffer();
-    const contentType = resp.headers.get("content-type")?.split(";")[0] ?? "";
-    const mime = contentType || guessMime(file);
-    return { mime, base64: Buffer.from(buf).toString("base64") };
-  }
-
-  throw new Error(`Unsupported URI scheme: ${file}. Use pinix:// or http(s)://`);
+  const buf = await data.resolve(file);
+  const mime = guessMime(file);
+  return { mime, base64: buf.toString("base64") };
 }
 
 async function callGemini(

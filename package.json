@@ -1,16 +1,16 @@
 {
   "name": "clip-perceive",
   "version": "0.1.0",
-  "description": "Multimodal media perception — analyze images, audio, and video with AI",
   "bin": {
     "clip-perceive": "index.ts"
   },
+  "description": "Multimodal media perception — analyze images, audio, and video with AI",
   "files": [
     "index.ts"
   ],
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@pinixai/core": "^0.12.0"
+    "@pinixai/core": "^0.15.0"
   }
 }
